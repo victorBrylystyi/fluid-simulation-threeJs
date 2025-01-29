@@ -13,5 +13,8 @@ export default defineConfig({
       fileName: 'fluid-lib',
       formats: ['es', 'cjs', 'umd'],
     },
+    rollupOptions:{
+      external: ['three']
+    }
   },
 });
