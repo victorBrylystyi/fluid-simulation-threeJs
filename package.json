@@ -15,9 +15,13 @@
       "require": "./dist/fluid-lib.umd.cjs"
     }
   },
+  "workspaces": [
+    "demo"
+  ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build:lib": "tsc && vite build",
+    "build:demo": "npm run build:lib && npm run build -w demo",
     "preview": "vite preview"
   },
   "devDependencies": {
