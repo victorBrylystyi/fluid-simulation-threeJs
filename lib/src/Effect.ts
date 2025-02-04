@@ -1,48 +1,18 @@
-import { HalfFloatType, LinearFilter, NearestFilter, OrthographicCamera, RGB, RGBAFormat, Vector2, Vector2Tuple, Vector3, WebGLRenderer, WebGLRenderTarget } from "three";
+import { HalfFloatType, LinearFilter, NearestFilter, OrthographicCamera, RepeatWrapping, RGB, RGBAFormat, Vector2, Vector2Tuple, Vector3, WebGLRenderer, WebGLRenderTarget } from "three";
 import { CurlPass } from "./passes/CurlPass";
 import { VorticityPass } from "./passes/VorticityPass";
 import { DivergencePass } from "./passes/DivergencePass";
 import { ClearPass } from "./passes/ClearPass";
 import { PressurePass } from "./passes/PressurePass";
 import { GradienSubtractPass } from "./passes/GradienSubtractPass";
-import { generateColor, generatePointerData, wrap } from "./helpers";
+import { generateColor, generatePointerData, scaleByPixelRatio, updatePointerDownData, updatePointerMoveData, updatePointerUpData, wrap } from "./helpers";
 // import { ColorPass } from "./passes/ColorPass";
 // import { CheckerBoardPass } from "./passes/CheckerBoardPass";
 // import { DisplayMaterialPass } from "./passes/DisplayMaterialPass";
-import { PointerData } from "./types";
+import { ConfigType, PointerData } from "./types";
 import { SplatPass } from "./passes/SplatPass";
 import { DoubleRenderTarget } from "./DoubleRenderTarget";
 import { AdvectionPass } from "./passes/AdvectionPass";
-// import GUI from "lil-gui";
-
-// =============== Effect configuration options ===============
-const config = {
-    SIM_RESOLUTION: 256,
-    DYE_RESOLUTION: 1024,
-    CAPTURE_RESOLUTION: 512,
-    DENSITY_DISSIPATION: 1,
-    VELOCITY_DISSIPATION: 0.2,
-    PRESSURE: 0.8,
-    PRESSURE_ITERATIONS: 20,
-    CURL: 30,
-    SPLAT_RADIUS: 0.5,
-    SPLAT_FORCE: 6000,
-    SHADING: true,
-    COLORFUL: true,
-    COLOR_UPDATE_SPEED: 10,
-    PAUSED: false,
-    BACK_COLOR: { r: 0, g: 0, b: 0 },
-    TRANSPARENT: false,
-    BLOOM: true,
-    BLOOM_ITERATIONS: 8,
-    BLOOM_RESOLUTION: 256,
-    BLOOM_INTENSITY: 0.8,
-    BLOOM_THRESHOLD: 0.6,
-    BLOOM_SOFT_KNEE: 0.7,
-    SUNRAYS: true,
-    SUNRAYS_RESOLUTION: 196,
-    SUNRAYS_WEIGHT: 1.0,
-};
 
 const _v2 = new Vector2();
 const _v3 = new Vector3();
@@ -80,9 +50,28 @@ export class Effect {
     public readonly supportLinearFiltering: boolean;
     public readonly supportColorBufferFloat: boolean;
 
+    private pointerDown = (e: PointerEvent) => {
+        const posX = scaleByPixelRatio(e.offsetX);
+        const posY = scaleByPixelRatio(e.offsetY);
+        let pointer = this.pointers.find(p => p.id == -1);
+        if (pointer == null)
+            pointer = generatePointerData();
+        updatePointerDownData(this.renderer.domElement, pointer, -1, posX, posY);
+    };
+    private pointerMove = (e: PointerEvent) => {
+        const pointer = this.pointers[0];
+        if (!pointer.down) return;
+        const posX = scaleByPixelRatio(e.offsetX);
+        const posY = scaleByPixelRatio(e.offsetY);
+        updatePointerMoveData(this.renderer.domElement, pointer, posX, posY);
+    };
+    private pointerUp = () => {
+        updatePointerUpData(this.pointers[0]);
+    };
+
     private lastUpdateTime = 0;
 
-    constructor(readonly renderer: WebGLRenderer) {
+    constructor(readonly renderer: WebGLRenderer, readonly config: ConfigType) {
 
         this.supportColorBufferFloat = !!this.renderer.extensions.get('EXT_color_buffer_float');
         this.supportLinearFiltering = !!this.renderer.extensions.get('OES_texture_float_linear');
@@ -101,29 +90,14 @@ export class Effect {
 
         this.initRenderTargets();
         // this.initGUI();
+        if (this.config.EVENT_PERMISSION){
+            const canvas = this.renderer.domElement;
 
-        // const canvas = this.renderer.domElement;
+            canvas.addEventListener('pointerdown', this.pointerDown);
+            canvas.addEventListener('pointermove', this.pointerMove);
+            window.addEventListener('pointerup', this.pointerUp);
+        }
 
-        // canvas.addEventListener('pointerdown', e => {
-        //     const posX = scaleByPixelRatio(e.offsetX);
-        //     const posY = scaleByPixelRatio(e.offsetY);
-        //     let pointer = this.pointers.find(p => p.id == -1);
-        //     if (pointer == null)
-        //         pointer = generatePointerData();
-        //     updatePointerDownData(this.renderer.domElement, pointer, -1, posX, posY);
-        // });
-        
-        // canvas.addEventListener('pointermove', e => {
-        //     const pointer = this.pointers[0];
-        //     if (!pointer.down) return;
-        //     const posX = scaleByPixelRatio(e.offsetX);
-        //     const posY = scaleByPixelRatio(e.offsetY);
-        //     updatePointerMoveData(this.renderer.domElement, pointer, posX, posY);
-        // });
-        
-        // window.addEventListener('pointerup', () => {
-        //     updatePointerUpData(this.pointers[0]);
-        // });
     }
 
     private disposeRTs() {
@@ -150,14 +124,26 @@ export class Effect {
 
     }
 
+    public unmount(){
+        this.disposeRTs();
+
+        if (this.config.EVENT_PERMISSION) {
+            const canvas = this.renderer.domElement;
+
+            canvas.removeEventListener('pointerdown', this.pointerDown);
+            canvas.removeEventListener('pointermove', this.pointerMove);
+            window.removeEventListener('pointerup', this.pointerUp);
+        }
+    }
+
     private initRenderTargets(){
 
         this.disposeRTs();
 
-        const dyeResWidth = config.DYE_RESOLUTION;
+        const dyeResWidth = this.config.DYE_RESOLUTION;
         const dyeResHeight = dyeResWidth / 2;
 
-        const simResWidth = config.SIM_RESOLUTION;
+        const simResWidth = this.config.SIM_RESOLUTION;
         const simResHeight = simResWidth / 2;
 
         this.dyeRT = new DoubleRenderTarget(dyeResWidth, dyeResHeight, {
@@ -167,7 +153,9 @@ export class Effect {
             depthBuffer: false,
             stencilBuffer: false,
             minFilter: LinearFilter,
-            magFilter: LinearFilter
+            magFilter: LinearFilter,
+            wrapS: RepeatWrapping,
+            wrapT: RepeatWrapping
         });
 
         this.velocityRT = new DoubleRenderTarget(simResWidth, simResHeight, {
@@ -177,7 +165,9 @@ export class Effect {
             depthBuffer: false,
             stencilBuffer: false,
             minFilter: LinearFilter,
-            magFilter: LinearFilter
+            magFilter: LinearFilter,
+            wrapS: RepeatWrapping,
+            wrapT: RepeatWrapping
         });
 
         this.divergenceRT = new WebGLRenderTarget(simResWidth, simResHeight, {
@@ -188,6 +178,8 @@ export class Effect {
             stencilBuffer: false,
             minFilter: NearestFilter,
             magFilter: NearestFilter,
+            wrapS: RepeatWrapping,
+            wrapT: RepeatWrapping
         });
 
         this.curlRT = new WebGLRenderTarget(simResWidth, simResHeight, {
@@ -197,7 +189,9 @@ export class Effect {
             depthBuffer: false,
             stencilBuffer: false,
             minFilter: NearestFilter,
-            magFilter: NearestFilter
+            magFilter: NearestFilter,
+            wrapS: RepeatWrapping,
+            wrapT: RepeatWrapping
         });
 
         this.pressureRT = new DoubleRenderTarget(simResWidth, simResHeight, {
@@ -207,29 +201,30 @@ export class Effect {
             depthBuffer: false,
             stencilBuffer: false,
             minFilter: NearestFilter,
-            magFilter: NearestFilter
-
+            magFilter: NearestFilter,
+            wrapS: RepeatWrapping,
+            wrapT: RepeatWrapping
         });
 
     }
 
     // private initGUI () {
-    //     this.gui.add(config, 'DYE_RESOLUTION', { 'high': 1024, 'medium': 512, 'low': 256, 'very low': 128 }).name('quality').onFinishChange(() => {
+    //     this.gui.add(this.config, 'DYE_RESOLUTION', { 'high': 1024, 'medium': 512, 'low': 256, 'very low': 128 }).name('quality').onFinishChange(() => {
     //         this.initRenderTargets();
     //     });
-    //     this.gui.add(config, 'SIM_RESOLUTION', { '32': 32, '64': 64, '128': 128, '256': 256 }).name('sim resolution').onFinishChange(() => {
+    //     this.gui.add(this.config, 'SIM_RESOLUTION', { '32': 32, '64': 64, '128': 128, '256': 256 }).name('sim resolution').onFinishChange(() => {
     //         this.initRenderTargets();
     //     });
-    //     this.gui.add(config, 'DENSITY_DISSIPATION', 0, 4.0).name('density diffusion');
-    //     this.gui.add(config, 'VELOCITY_DISSIPATION', 0, 4.0).name('velocity diffusion');
-    //     this.gui.add(config, 'PRESSURE', 0.0, 1.0).name('pressure');
-    //     this.gui.add(config, 'CURL', 0, 50).name('vorticity').step(1);
-    //     this.gui.add(config, 'SPLAT_RADIUS', 0.01, 1.0).name('splat radius');
-    //     // this.gui.add(config, 'SHADING').name('shading').onFinishChange(() => {
-    //     //     updateKeywords(config);
+    //     this.gui.add(this.config, 'DENSITY_DISSIPATION', 0, 4.0).name('density diffusion');
+    //     this.gui.add(this.config, 'VELOCITY_DISSIPATION', 0, 4.0).name('velocity diffusion');
+    //     this.gui.add(this.config, 'PRESSURE', 0.0, 1.0).name('pressure');
+    //     this.gui.add(this.config, 'CURL', 0, 50).name('vorticity').step(1);
+    //     this.gui.add(this.config, 'SPLAT_RADIUS', 0.01, 1.0).name('splat radius');
+    //     // this.gui.add(this.config, 'SHADING').name('shading').onFinishChange(() => {
+    //     //     updateKeywords(this.config);
     //     // });
-    //     // this.gui.add(config, 'COLORFUL').name('colorful');
-    //     // this.gui.add(config, 'PAUSED').name('paused').listen();
+    //     // this.gui.add(this.config, 'COLORFUL').name('colorful');
+    //     // this.gui.add(this.config, 'PAUSED').name('paused').listen();
     
     //     // this.gui.add({ fun: () => {
     //     //     // @ts-ignore
@@ -237,21 +232,21 @@ export class Effect {
     //     // } }, 'fun').name('Random splats');
     
     //     // const bloomFolder = this.gui.addFolder('Bloom');
-    //     // bloomFolder.add(config, 'BLOOM').name('enabled').onFinishChange(() => {
-    //     //     updateKeywords(config);
+    //     // bloomFolder.add(this.config, 'BLOOM').name('enabled').onFinishChange(() => {
+    //     //     updateKeywords(this.config);
     //     // });
-    //     // bloomFolder.add(config, 'BLOOM_INTENSITY', 0.1, 2.0).name('intensity');
-    //     // bloomFolder.add(config, 'BLOOM_THRESHOLD', 0.0, 1.0).name('threshold');
+    //     // bloomFolder.add(this.config, 'BLOOM_INTENSITY', 0.1, 2.0).name('intensity');
+    //     // bloomFolder.add(this.config, 'BLOOM_THRESHOLD', 0.0, 1.0).name('threshold');
     
     //     // const sunraysFolder = this.gui.addFolder('Sunrays');
-    //     // sunraysFolder.add(config, 'SUNRAYS').name('enabled').onFinishChange(() => {
-    //     //     updateKeywords(config);
+    //     // sunraysFolder.add(this.config, 'SUNRAYS').name('enabled').onFinishChange(() => {
+    //     //     updateKeywords(this.config);
     //     // });
-    //     // sunraysFolder.add(config, 'SUNRAYS_WEIGHT', 0.3, 1.0).name('weight');
+    //     // sunraysFolder.add(this.config, 'SUNRAYS_WEIGHT', 0.3, 1.0).name('weight');
     
     //     // const captureFolder = this.gui.addFolder('Capture');
-    //     // captureFolder.addColor(config, 'BACK_COLOR').name('background color');
-    //     // captureFolder.add(config, 'TRANSPARENT').name('transparent');
+    //     // captureFolder.addColor(this.config, 'BACK_COLOR').name('background color');
+    //     // captureFolder.add(this.config, 'TRANSPARENT').name('transparent');
     //     // captureFolder.add({ fun: captureScreenshot }, 'fun').name('take screenshot');
     
     // }
@@ -264,13 +259,16 @@ export class Effect {
 
         this.applyInputs();
 
-        if (!config.PAUSED) {
+        if (!this.config.PAUSED) {
             this.step(deltaT);
         }
 
         this.renderer.setRenderTarget(null);
 
-        // this.render(null);
+        // if (this.config.EVENT_PERMISSION){
+        //     this.render(null);
+        // }
+
 
     }
 
@@ -295,7 +293,7 @@ export class Effect {
                 uVelocity: this.velocityRT.read.texture,
                 uCurl: this.curlRT.texture,
                 dt,
-                curl: config.CURL
+                curl: this.config.CURL
             });
             this.renderer.render(this.vorticityPass.scene, this.camera);
             this.velocityRT.swap();
@@ -318,7 +316,7 @@ export class Effect {
             this.renderer.setRenderTarget(this.pressureRT.write);
             this.clearPass.update({
                 uTexture: this.pressureRT.read.texture,
-                value: config.PRESSURE
+                value: this.config.PRESSURE
             });
             this.renderer.render(this.clearPass.scene, this.camera);
             this.pressureRT.swap();
@@ -332,7 +330,7 @@ export class Effect {
                 uDivergence: this.divergenceRT.texture
             });
     
-            for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
+            for (let i = 0; i < this.config.PRESSURE_ITERATIONS; i++) {
                 this.renderer.setRenderTarget(this.pressureRT.write);
                 this.pressurePass.update({
                     uPressure: this.pressureRT.read.texture,
@@ -365,7 +363,7 @@ export class Effect {
                 uVelocity: this.velocityRT.read.texture,
                 uSource: this.velocityRT.read.texture,
                 dt,
-                dissipation: config.VELOCITY_DISSIPATION
+                dissipation: this.config.VELOCITY_DISSIPATION
             });
             this.renderer.render(this.advectionPass.scene, this.camera);
             this.velocityRT.swap();
@@ -379,7 +377,7 @@ export class Effect {
                 uVelocity: this.velocityRT.read.texture,
                 uSource: this.dyeRT.read.texture,
                 dt,
-                dissipation: config.DENSITY_DISSIPATION
+                dissipation: this.config.DENSITY_DISSIPATION
             });
             this.renderer.render(this.advectionPass.scene, this.camera);
             this.dyeRT.swap();
@@ -389,11 +387,11 @@ export class Effect {
 
     // private render(target: WebGLRenderTarget | null){
 
-    //     if (!config.TRANSPARENT){
-    //         this.drawColor(target, config.BACK_COLOR);
+    //     if (!this.config.TRANSPARENT){
+    //         this.drawColor(target, this.config.BACK_COLOR);
     //     }
 
-    //     if (target == null && config.TRANSPARENT){
+    //     if (target == null && this.config.TRANSPARENT){
     //         this.drawCheckerboard(target);
     //     }
 
@@ -422,20 +420,20 @@ export class Effect {
     //     const height = target == null ? this.renderer.domElement.height : target.height;
     
     //     // displayMaterial.bind();
-    //     // if (config.SHADING)
+    //     // if (this.config.SHADING)
     //     //     gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
     //     // gl.uniform1i(displayMaterial.uniforms.uTexture, dye.read.attach(0));
-    //     // if (config.BLOOM) {
+    //     // if (this.config.BLOOM) {
     //     //     gl.uniform1i(displayMaterial.uniforms.uBloom, bloom.attach(1));
     //     //     gl.uniform1i(displayMaterial.uniforms.uDithering, ditheringTexture.attach(2));
     //     //     let scale = getTextureScale(ditheringTexture, width, height);
     //     //     gl.uniform2f(displayMaterial.uniforms.ditherScale, scale.x, scale.y);
     //     // }
-    //     // if (config.SUNRAYS)
+    //     // if (this.config.SUNRAYS)
     //     //     gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
     //     // blit(target);
 
-    //     if (config.SHADING){
+    //     if (this.config.SHADING){
     //         this.displayPass.update({
     //             texelSize: _v2.set(1.0 / width, 1.0 / height),
     //         });
@@ -451,9 +449,9 @@ export class Effect {
     // }
 
     private updateColors (dt: number) {
-        if (!config.COLORFUL) return;
+        if (!this.config.COLORFUL) return;
     
-        this.colorUpdateTimer += dt * config.COLOR_UPDATE_SPEED;
+        this.colorUpdateTimer += dt * this.config.COLOR_UPDATE_SPEED;
         if (this.colorUpdateTimer >= 1) {
             this.colorUpdateTimer = wrap(this.colorUpdateTimer, 0, 1);
             this.pointers.forEach(p => {
@@ -469,7 +467,7 @@ export class Effect {
             aspectRatio: this.renderer.domElement.width / this.renderer.domElement.height,
             point: _v2.set(x, y),
             color: _v3.set(dx, dy, 0),
-            radius: config.SPLAT_RADIUS / 100.0
+            radius: this.config.SPLAT_RADIUS / 100.0
         });
         this.renderer.render(this.splatPass.scene, this.camera);
         this.velocityRT.swap();
@@ -492,13 +490,13 @@ export class Effect {
         return dt;
     }
 
-    // private splatPointer = (pointer: PointerData) => {
-    //     const dx = pointer.deltaX * config.SPLAT_FORCE;
-    //     const dy = pointer.deltaY * config.SPLAT_FORCE;
-    //     this.splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color);
-    // }
+    private splatPointer = (pointer: PointerData) => {
+        const dx = pointer.deltaX * this.config.SPLAT_FORCE;
+        const dy = pointer.deltaY * this.config.SPLAT_FORCE;
+        this.splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color);
+    }
 
-    private multipleSplats (amount: number) {
+    public multipleSplats (amount: number) {
         for (let i = 0; i < amount; i++) {
             const color = generateColor();
             color.r *= 10.0;
@@ -524,12 +522,16 @@ export class Effect {
             this.multipleSplats(this.splatStack.pop()!);
         }
 
-        // this.pointers.forEach(p => {
-        //     if (p.moved) {
-        //         p.moved = false;
-        //         this.splatPointer(p);
-        //     }
-        // });
+        if (this.config.EVENT_PERMISSION) {
+            this.pointers.forEach(p => {
+                if (p.moved) {
+                    p.moved = false;
+                    this.splatPointer(p);
+                }
+            });
+        }
+
+
     }
 
 }

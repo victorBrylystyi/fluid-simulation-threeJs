@@ -1,33 +1,25 @@
-import { Mesh, PerspectiveCamera, PMREMGenerator, Scene, ShaderMaterial, SphereGeometry, Texture, Uniform, Vector2Tuple, WebGLRenderer } from "three";
+import { Mesh, PerspectiveCamera, PMREMGenerator, ShaderMaterial, SphereGeometry, Texture, Uniform, Vector2Tuple } from "three";
 import { OrbitControls, RGBELoader } from 'three-stdlib';
-// import Stats from 'three/examples/jsm/libs/stats.module';
-import Effect from "@evenstar/fluid";
-import { Stats } from "stats.ts";
+import Stats from 'three/examples/jsm/libs/stats.module.js'
+import { Demo } from "../Demo/Demo";
+import {Effect} from "@evenstar/fluid";
 
-// import Effect from '../../src'
 
-export class App {
-    rootElement: HTMLDivElement;
-    canvas = document.createElement('canvas');
-    renderer = new WebGLRenderer({ 
-        canvas: this.canvas, 
-        antialias: false, 
-        alpha: false
-    });
+export class SphereDemo extends Demo {
+
     camera!: PerspectiveCamera;
-    scene = new Scene();
+
     effectMesh = new Mesh();
     sphereMesh = new Mesh();
     stats = new Stats();
     cameraControls!: OrbitControls;
-    processId = 0;
-    effect!: Effect;
+
     envTexture!: Texture;
-    lastUpdateTime: number = 0;
 
     constructor(rootElement: HTMLDivElement) {
+        super(rootElement);
         this.rootElement = rootElement;
-        this.effect = new Effect(this.renderer);
+        this.effect = new Effect(this.renderer, this.config);
         this.preLoad();
     }
 
@@ -48,10 +40,9 @@ export class App {
     }
 
     mount() {
+        super.mount();
 
         const aspect = this.rootElement.clientWidth / this.rootElement.clientHeight; 
-
-        this.rootElement.appendChild(this.canvas);
 
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.renderer.setSize(this.rootElement.clientWidth, this.rootElement.clientHeight, true);
@@ -97,7 +88,7 @@ export class App {
                 void main () {
                     vec4 worldPos = modelMatrix * vec4(position, 1.0);
 
-                    vUv = uv;
+                    vUv = uv * 2.0;
                     vNormal = normalize(modelMatrix * vec4(normal, 0.0)).xyz;
                     vEyeVector = normalize(worldPos.xyz - cameraPosition);
                     vPos = worldPos.xyz;
@@ -138,7 +129,18 @@ export class App {
                     vec3 v_refraction = refract(vEyeVector, vNormal, Eta);
                     vec3 v_reflection = reflect(vEyeVector, vNormal);
 
-                    vec4 refractColor = texture2D(effectMap, vUv);
+                    // custom repeat mirror uv
+                    vec2 uv = vUv;
+
+                    if (uv.x > 1.0) {
+                        uv.x = 2.0 - uv.x;
+                    }
+
+                    if (uv.y > 1.0) {
+                        uv.y = 2.0 - uv.y;
+                    }
+
+                    vec4 refractColor = texture2D(effectMap, uv);
                     refractColor.a = max(refractColor.r, max(refractColor.g, refractColor.b));
                 
                     vec4 reflectColor = linearToOutputTexel(textureCubeUV(enVMap2, v_reflection, backgroundBlurriness));
@@ -157,13 +159,11 @@ export class App {
         this.effectMesh = new Mesh(effectMeshGeometry, effectMeshMaterial);
         this.scene.add(this.effectMesh);
 
-        window.addEventListener('resize', () => this.resize());
-
     }
 
     unmount() {
         // dispose of all the things
-        window.removeEventListener('resize', () => this.resize());
+        super.unmount();
     }
 
     animate(dt: number = 0) {
@@ -217,7 +217,9 @@ export class App {
             g: 0.0,
             b: 1.0
         }, [0.75, 0.75], this.getVelocity(time));
-        
+
+        // this.effect.texture.wrapS = MirroredRepeatWrapping;
+        // this.effect.texture.wrapT = MirroredRepeatWrapping;
         (this.effectMesh.material as ShaderMaterial).uniforms.effectMap.value = this.effect.texture;
       
         this.effect.update(this.calcDeltaTime());
@@ -236,13 +238,11 @@ export class App {
 
     resize() {
 
-        const w = this.rootElement.clientWidth;
-        const h = this.rootElement.clientHeight;
-        const aspect = w / h;
-
-        this.renderer.setSize(w, h, true);
+        const { w, h, aspect } = super.resize();
 
         this.camera.aspect = aspect;
         this.camera.updateProjectionMatrix();
+
+        return { w, h, aspect };
     }
 }

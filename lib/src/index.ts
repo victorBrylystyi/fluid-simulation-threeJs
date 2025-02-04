@@ -1,7 +1,6 @@
 
-import { Effect } from "./Effect";
-
-export default Effect;
+export { Effect } from "./Effect";
+export type { ConfigType } from "./types";
 
 
 
