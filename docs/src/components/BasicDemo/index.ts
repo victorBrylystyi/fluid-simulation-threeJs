@@ -19,6 +19,7 @@ export class BaseDemo extends Demo {
         this.effect.multipleSplats(Math.round(Math.random() * 20) + 5);
 
         this.mount();
+        this.resizeDemo();
         this.startAnimation();
     }
 

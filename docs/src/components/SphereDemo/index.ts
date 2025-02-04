@@ -35,6 +35,7 @@ export class SphereDemo extends Demo {
             this.scene.background = this.envTexture;
 
             this.mount();
+            this.resizeDemo();
             this.startAnimation();
         });
     }
