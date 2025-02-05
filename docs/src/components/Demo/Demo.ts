@@ -57,15 +57,14 @@ export class Demo {
 
     constructor(rootElement: HTMLDivElement) {
         this.rootElement = rootElement;
+        this.canvas.style.touchAction = 'none';
     }
     mount(){
         this.rootElement.appendChild(this.canvas);
-        this.rootElement.addEventListener('scroll', this.scrollRoot);
         window.addEventListener('resize', this.resizeDemo);
     }
     unmount(){
         window.removeEventListener('resize', this.resizeDemo);
-        this.rootElement.removeEventListener('scroll', this.scrollRoot);
         this.effect.unmount();
 
         this.scene.traverse(obj => {
