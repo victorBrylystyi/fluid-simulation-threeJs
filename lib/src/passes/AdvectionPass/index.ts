@@ -125,4 +125,9 @@ export class AdvectionPass {
         }
 
     }
+
+    public dispose() {
+        this.mesh.geometry.dispose();
+        this.material.dispose();
+    }
 };

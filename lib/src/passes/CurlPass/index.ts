@@ -78,4 +78,9 @@ export class CurlPass {
             materialUniforms.uVelocity.value = uniforms.uVelocity;
         }
     }
+
+    public dispose() {
+        this.mesh.geometry.dispose();
+        this.material.dispose();
+    }
 }

@@ -67,4 +67,9 @@ export class ClearPass {
         }
     }
 
+    public dispose() {
+        this.mesh.geometry.dispose();
+        this.material.dispose();
+    }
+
 }

@@ -102,4 +102,9 @@ export class SplatPass {
             materialUniforms.radius.value = uniforms.radius;
         }
     }
+
+    public dispose() {
+        this.mesh.geometry.dispose();
+        this.material.dispose();
+    }
 };

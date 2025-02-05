@@ -53,10 +53,8 @@ export class Effect {
     public readonly supportColorBufferFloat: boolean;
 
     private pointerDown = (e: PointerEvent) => {
-        const posX = e.offsetX * window.devicePixelRatio;
-        const posY = e.offsetY * window.devicePixelRatio;
-        // const posX = e.offsetX / this.renderer.domElement.width;
-        // const posY = e.offsetY / this.renderer.domElement.height;
+        const posX = e.offsetX;
+        const posY = e.offsetY
         let pointer = this.pointers.find(p => p.id == -1);
         if (pointer == null)
             pointer = generatePointerData();
@@ -65,10 +63,8 @@ export class Effect {
     private pointerMove = (e: PointerEvent) => {
         const pointer = this.pointers[0];
         if (!pointer.down) return;
-        const posX = e.offsetX * window.devicePixelRatio;
-        const posY = e.offsetY * window.devicePixelRatio;
-        // const posX = e.offsetX / this.renderer.domElement.width;
-        // const posY = e.offsetY / this.renderer.domElement.height;
+        const posX = e.offsetX;
+        const posY = e.offsetY;
         updatePointerMoveData(this.renderer.domElement, pointer, posX, posY);
     };
     private pointerUp = () => {
@@ -130,8 +126,20 @@ export class Effect {
 
     }
 
+    private disposePasses() {
+        this.advectionPass.dispose();
+        this.curlPass.dispose();
+        this.vorticityPass.dispose();
+        this.divergencePass.dispose();
+        this.clearPass.dispose();
+        this.pressurePass.dispose();
+        this.gradienSubtractPass.dispose();
+        this.splatPass.dispose();
+    }
+
     public unmount(){
         this.disposeRTs();
+        this.disposePasses();
 
         if (this.config.EVENT_PERMISSION) {
             const canvas = this.renderer.domElement;

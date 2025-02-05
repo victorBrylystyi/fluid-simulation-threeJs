@@ -74,4 +74,9 @@ export class CheckerBoardPass {
         }
 
     }
+    
+    public dispose() {
+        this.mesh.geometry.dispose();
+        this.material.dispose();
+    }
 };

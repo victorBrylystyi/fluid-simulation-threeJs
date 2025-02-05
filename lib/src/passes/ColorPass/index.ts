@@ -60,4 +60,9 @@ export class ColorPass {
         }
 
     }
+
+    public dispose() {
+        this.mesh.geometry.dispose();
+        this.material.dispose();
+    }
 };

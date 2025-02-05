@@ -153,4 +153,9 @@ export class DisplayMaterialPass {
         }
 
     }
+
+    public dispose() {
+        this.mesh.geometry.dispose();
+        this.material.dispose();
+    }
 };

@@ -105,4 +105,9 @@ export class VorticityPass {
             materialUniforms.dt.value = uniforms.dt;
         }
     }
+
+    public dispose() {
+        this.mesh.geometry.dispose();
+        this.material.dispose();
+    }
 }

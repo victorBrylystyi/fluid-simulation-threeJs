@@ -55,7 +55,7 @@ export class SphereDemo extends Demo {
         this.renderer.setSize(this.rootElement.clientWidth, this.rootElement.clientHeight, true);
 
         this.camera = new PerspectiveCamera( 70, aspect, 0.01, 10 );
-        this.camera.position.set(0, 0, 1);
+        this.camera.position.set(0, 0, 0.6);
 
         this.stats.dom.style.position = 'absolute';
         this.stats.dom.style.userSelect = 'none';

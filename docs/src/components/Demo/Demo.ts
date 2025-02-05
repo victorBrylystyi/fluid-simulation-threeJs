@@ -37,7 +37,7 @@ export class Demo {
     canvas = document.createElement('canvas');
     renderer = new WebGLRenderer({ 
         canvas: this.canvas, 
-        antialias: false, 
+        antialias: true, 
         alpha: false
     });
     scene = new Scene();
@@ -79,7 +79,7 @@ export class Demo {
     addPostProcessingPasses(scene: Scene, camera: Camera){
         this.bloomPass = new UnrealBloomPass(
             new Vector2(this.rootElement.clientWidth, this.rootElement.clientHeight),
-            1,0.2,1
+            1,0.2,0.4
         );
         this.composer.addPass(new RenderPass(scene, camera));
 
