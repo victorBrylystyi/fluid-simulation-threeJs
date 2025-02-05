@@ -1,7 +1,7 @@
 import {ConfigType, Effect} from "@evenstar/fluid";
 import { Camera, Mesh, Scene, Vector2, WebGLRenderer } from "three";
 import { EffectComposer } from "three-stdlib";
-import { OutputPass, RenderPass, UnrealBloomPass } from "three/examples/jsm/Addons.js";
+import { OutputPass, RenderPass, UnrealBloomPass, FXAAShader, ShaderPass } from "three/examples/jsm/Addons.js";
 
 export class Demo {
     // =============== Effect configuration options ===============
@@ -37,7 +37,7 @@ export class Demo {
     canvas = document.createElement('canvas');
     renderer = new WebGLRenderer({ 
         canvas: this.canvas, 
-        antialias: true, 
+        antialias: false, 
         alpha: false
     });
     scene = new Scene();
@@ -46,7 +46,11 @@ export class Demo {
     lastUpdateTime = 0;
     composer = new EffectComposer(this.renderer);
     bloomPass!: UnrealBloomPass;
-    
+    fxaaPass!: ShaderPass;
+
+    scrollRoot = (e: Event) => {
+        e.preventDefault();
+    };
     resizeDemo = () => {
         this.resize();
     };
@@ -56,10 +60,12 @@ export class Demo {
     }
     mount(){
         this.rootElement.appendChild(this.canvas);
+        this.rootElement.addEventListener('scroll', this.scrollRoot);
         window.addEventListener('resize', this.resizeDemo);
     }
     unmount(){
         window.removeEventListener('resize', this.resizeDemo);
+        this.rootElement.removeEventListener('scroll', this.scrollRoot);
         this.effect.unmount();
 
         this.scene.traverse(obj => {
@@ -81,15 +87,26 @@ export class Demo {
             new Vector2(this.rootElement.clientWidth, this.rootElement.clientHeight),
             1,0.2,0.4
         );
+        const pixelRatio = this.renderer.getPixelRatio();
+        this.fxaaPass = new ShaderPass(FXAAShader);
+
+        this.fxaaPass.material.uniforms[ 'resolution' ].value.x = 1 / ( this.rootElement.offsetWidth * pixelRatio );
+        this.fxaaPass.material.uniforms[ 'resolution' ].value.y = 1 / ( this.rootElement.offsetHeight * pixelRatio );
+
         this.composer.addPass(new RenderPass(scene, camera));
 
         this.composer.addPass(this.bloomPass);
         this.composer.addPass(new OutputPass());
+        this.composer.addPass(this.fxaaPass);
     }
     resize(){        
         const w = this.rootElement.clientWidth;
         const h = this.rootElement.clientHeight;
         const aspect = w / h;
+
+        const pixelRatio = this.renderer.getPixelRatio();
+        this.fxaaPass.material.uniforms[ 'resolution' ].value.x = 1 / ( this.rootElement.offsetWidth * pixelRatio );
+        this.fxaaPass.material.uniforms[ 'resolution' ].value.y = 1 / ( this.rootElement.offsetHeight * pixelRatio );
 
         this.bloomPass.resolution.set(w, h);
         this.renderer.setSize(w, h, true);
