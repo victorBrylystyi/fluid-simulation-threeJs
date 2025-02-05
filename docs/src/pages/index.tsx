@@ -14,21 +14,44 @@ const HomepageHeader = () => {
   const {siteConfig} = useDocusaurusContext();
   const ref = useRef<HTMLDivElement>(null);
 
-  // useEffect(() => {
-  //     if (!ref.current) return;
+  useEffect(() => {
+      if (!ref.current) return;
 
-  //     const app = new BaseDemo(ref.current as HTMLDivElement);
+      console.log(ref.current.clientWidth, ref.current.clientHeight);
+      const app = new BaseDemo(ref.current);
   
-  //     return () => {
-  //         app.unmount();
-  //     }
+      return () => {
+          app.unmount();
+      }
 
-  // }, []);
+  }, []);
 
   return (
-    <div ref={ref} style={{backgroundColor: 'black'}}>
-      <header className={clsx('hero hero--primary', styles.heroBanner)}>
-        <div className="container">
+    <div 
+      style={{
+        // padding: '4rem 0',
+        textAlign: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+        userSelect: 'none',
+      }}
+    >
+    {/* <div className={clsx('hero hero--primary', styles.heroBanner)}> */}
+        <div ref={ref} style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+        }} />
+        <div className="container" 
+          style={{
+            padding: '4rem 0',
+            position: 'relative',
+            zIndex: 1,
+            pointerEvents: 'none',
+          }}
+        >
           <Heading as="h1" className="hero__title">
             {siteConfig.title}
           </Heading>
@@ -41,7 +64,7 @@ const HomepageHeader = () => {
             </Link>
           </div>
         </div>
-      </header>
+    {/* </div> */}
     </div>
   );
 }

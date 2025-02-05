@@ -27,7 +27,7 @@ const Demo = (props: {demo: string}) => {
         }
     
         return () => {
-            
+
             if (app){
                 app.unmount();
             }
@@ -42,7 +42,9 @@ const Demo = (props: {demo: string}) => {
                 width: '100%',
                 aspectRatio: '16/9',
                 position: 'relative',
-                zIndex: 0
+                zIndex: 0,
+                overflow: 'hidden',
+                userSelect: 'none',
             }} 
         />
     );

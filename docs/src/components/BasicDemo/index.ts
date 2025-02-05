@@ -1,8 +1,8 @@
-import { OrthographicCamera, Vector2Tuple } from "three";
+import { OrthographicCamera, Vector2, Vector2Tuple } from "three";
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { Demo } from "../Demo/Demo";
 import { DisplayMaterialPass } from "./DisplayMaterialPass";
-import {ConfigType, Effect} from "@evenstar/fluid";
+import {Effect} from "@evenstar/fluid";
 
 export class BaseDemo extends Demo {
 
@@ -16,6 +16,7 @@ export class BaseDemo extends Demo {
 
         this.config.EVENT_PERMISSION = true;
         this.effect = new Effect(this.renderer, this.config);
+        this.effect.setAspect(this.rootElement.clientWidth / this.rootElement.clientHeight);
         this.effect.multipleSplats(Math.round(Math.random() * 20) + 5);
 
         this.mount();
@@ -36,6 +37,8 @@ export class BaseDemo extends Demo {
         this.stats.dom.style.position = 'absolute';
         this.stats.dom.style.userSelect = 'none';
         this.rootElement.appendChild(this.stats.dom);
+
+        this.addPostProcessingPasses(this.displayPass.scene, this.camera);
 
     }
 
@@ -102,7 +105,8 @@ export class BaseDemo extends Demo {
         this.displayPass.update({
             uTexture: this.effect.texture
         });
-        this.renderer.render(this.displayPass.scene, this.camera);
+        this.composer.render();
+        // this.renderer.render(this.displayPass.scene, this.camera);
     }
 
     startAnimation() {

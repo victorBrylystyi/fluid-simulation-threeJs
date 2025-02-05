@@ -1,8 +1,13 @@
-import { Mesh, PerspectiveCamera, PMREMGenerator, ShaderMaterial, SphereGeometry, Texture, Uniform, Vector2Tuple } from "three";
+import { Layers, Mesh, PerspectiveCamera, PMREMGenerator, Scene, ShaderMaterial, SphereGeometry, Texture, Uniform, Vector2Tuple } from "three";
 import { OrbitControls, RGBELoader } from 'three-stdlib';
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { Demo } from "../Demo/Demo";
 import {Effect} from "@evenstar/fluid";
+
+const BLOOM_SCENE = 1;
+
+const bloomLayer = new Layers();
+bloomLayer.set( BLOOM_SCENE );
 
 
 export class SphereDemo extends Demo {
@@ -20,6 +25,7 @@ export class SphereDemo extends Demo {
         super(rootElement);
         this.rootElement = rootElement;
         this.effect = new Effect(this.renderer, this.config);
+        this.effect.setAspect(2);
         this.preLoad();
     }
 
@@ -32,7 +38,7 @@ export class SphereDemo extends Demo {
             generator.dispose();
             texture.dispose();
 
-            this.scene.background = this.envTexture;
+            // this.scene.background = this.envTexture;
 
             this.mount();
             this.resizeDemo();
@@ -158,7 +164,9 @@ export class SphereDemo extends Demo {
         });
 
         this.effectMesh = new Mesh(effectMeshGeometry, effectMeshMaterial);
+        this.effectMesh.layers.enable(BLOOM_SCENE);
         this.scene.add(this.effectMesh);
+        this.addPostProcessingPasses(this.scene, this.camera);
 
     }
 
@@ -226,7 +234,8 @@ export class SphereDemo extends Demo {
         this.effect.update(this.calcDeltaTime());
         this.cameraControls.update();
 
-        this.renderer.render(this.scene, this.camera);
+        // this.renderer.render(this.scene, this.camera);
+        this.composer.render();
     }
 
     startAnimation() {

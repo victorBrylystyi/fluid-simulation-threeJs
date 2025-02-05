@@ -5,7 +5,7 @@ import { DivergencePass } from "./passes/DivergencePass";
 import { ClearPass } from "./passes/ClearPass";
 import { PressurePass } from "./passes/PressurePass";
 import { GradienSubtractPass } from "./passes/GradienSubtractPass";
-import { generateColor, generatePointerData, scaleByPixelRatio, updatePointerDownData, updatePointerMoveData, updatePointerUpData, wrap } from "./helpers";
+import { generateColor, generatePointerData, updatePointerDownData, updatePointerMoveData, updatePointerUpData, wrap } from "./helpers";
 // import { ColorPass } from "./passes/ColorPass";
 // import { CheckerBoardPass } from "./passes/CheckerBoardPass";
 // import { DisplayMaterialPass } from "./passes/DisplayMaterialPass";
@@ -46,13 +46,17 @@ export class Effect {
     private splatStack: number[] =  [];
 
     private colorUpdateTimer = 0.0;
+
+    private aspect = 1;
     
     public readonly supportLinearFiltering: boolean;
     public readonly supportColorBufferFloat: boolean;
 
     private pointerDown = (e: PointerEvent) => {
-        const posX = scaleByPixelRatio(e.offsetX);
-        const posY = scaleByPixelRatio(e.offsetY);
+        const posX = e.offsetX * window.devicePixelRatio;
+        const posY = e.offsetY * window.devicePixelRatio;
+        // const posX = e.offsetX / this.renderer.domElement.width;
+        // const posY = e.offsetY / this.renderer.domElement.height;
         let pointer = this.pointers.find(p => p.id == -1);
         if (pointer == null)
             pointer = generatePointerData();
@@ -61,8 +65,10 @@ export class Effect {
     private pointerMove = (e: PointerEvent) => {
         const pointer = this.pointers[0];
         if (!pointer.down) return;
-        const posX = scaleByPixelRatio(e.offsetX);
-        const posY = scaleByPixelRatio(e.offsetY);
+        const posX = e.offsetX * window.devicePixelRatio;
+        const posY = e.offsetY * window.devicePixelRatio;
+        // const posX = e.offsetX / this.renderer.domElement.width;
+        // const posY = e.offsetY / this.renderer.domElement.height;
         updatePointerMoveData(this.renderer.domElement, pointer, posX, posY);
     };
     private pointerUp = () => {
@@ -136,15 +142,21 @@ export class Effect {
         }
     }
 
+    public setAspect(aspect: number){
+        this.aspect = aspect;
+        this.disposeRTs();
+        this.initRenderTargets();
+    }
+
     private initRenderTargets(){
 
         this.disposeRTs();
 
         const dyeResWidth = this.config.DYE_RESOLUTION;
-        const dyeResHeight = dyeResWidth / 2;
+        const dyeResHeight = dyeResWidth / this.aspect;
 
         const simResWidth = this.config.SIM_RESOLUTION;
-        const simResHeight = simResWidth / 2;
+        const simResHeight = simResWidth / this.aspect;
 
         this.dyeRT = new DoubleRenderTarget(dyeResWidth, dyeResHeight, {
             format: RGBAFormat,

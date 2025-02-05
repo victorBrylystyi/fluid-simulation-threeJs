@@ -1,10 +1,11 @@
-import {Effect} from "@evenstar/fluid";
-import { Mesh, Scene, WebGLRenderer } from "three";
-
+import {ConfigType, Effect} from "@evenstar/fluid";
+import { Camera, Mesh, Scene, Vector2, WebGLRenderer } from "three";
+import { EffectComposer } from "three-stdlib";
+import { OutputPass, RenderPass, UnrealBloomPass } from "three/examples/jsm/Addons.js";
 
 export class Demo {
     // =============== Effect configuration options ===============
-    config = {
+    config: ConfigType = {
         SIM_RESOLUTION: 256,
         DYE_RESOLUTION: 1024,
         CAPTURE_RESOLUTION: 512,
@@ -43,6 +44,9 @@ export class Demo {
     effect!:Effect;
     processId = 0;
     lastUpdateTime = 0;
+    composer = new EffectComposer(this.renderer);
+    bloomPass!: UnrealBloomPass;
+    
     resizeDemo = () => {
         this.resize();
     };
@@ -72,12 +76,24 @@ export class Demo {
         this.renderer.dispose();
         this.rootElement.removeChild(this.canvas);
     }
+    addPostProcessingPasses(scene: Scene, camera: Camera){
+        this.bloomPass = new UnrealBloomPass(
+            new Vector2(this.rootElement.clientWidth, this.rootElement.clientHeight),
+            1,0.2,1
+        );
+        this.composer.addPass(new RenderPass(scene, camera));
+
+        this.composer.addPass(this.bloomPass);
+        this.composer.addPass(new OutputPass());
+    }
     resize(){        
         const w = this.rootElement.clientWidth;
-        const h = (w / 16) * 9; //this.rootElement.clientHeight;
+        const h = this.rootElement.clientHeight;
         const aspect = w / h;
 
+        this.bloomPass.resolution.set(w, h);
         this.renderer.setSize(w, h, true);
+        this.composer.setSize(w, h);
 
         return { w, h, aspect };
     }
