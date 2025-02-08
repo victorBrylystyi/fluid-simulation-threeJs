@@ -156,7 +156,7 @@ export class Effect {
         this.initRenderTargets();
     }
 
-    private initRenderTargets(){
+    public initRenderTargets(){
 
         this.disposeRTs();
 

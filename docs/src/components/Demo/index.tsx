@@ -16,10 +16,10 @@ const Demo = (props: {demo: string}) => {
 
         switch (demo) {
             case 'Basic':
-                app = new BaseDemo(rootRef.current);
+                app = new BaseDemo(rootRef.current, true);
                 break;
             case 'Sphere':
-                app = new SphereDemo(rootRef.current);
+                app = new SphereDemo(rootRef.current, true);
                 break;
         
             default:
@@ -45,6 +45,7 @@ const Demo = (props: {demo: string}) => {
                 zIndex: 0,
                 overflow: 'hidden',
                 userSelect: 'none',
+                background: 'transparent',
             }} 
         />
     );

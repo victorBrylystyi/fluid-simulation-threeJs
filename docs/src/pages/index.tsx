@@ -17,8 +17,7 @@ const HomepageHeader = () => {
   useEffect(() => {
       if (!ref.current) return;
 
-      console.log(ref.current.clientWidth, ref.current.clientHeight);
-      const app = new BaseDemo(ref.current);
+      const app = new BaseDemo(ref.current, false);
   
       return () => {
           app.unmount();
@@ -29,7 +28,6 @@ const HomepageHeader = () => {
   return (
     <div 
       style={{
-        // padding: '4rem 0',
         textAlign: 'center',
         position: 'relative',
         overflow: 'hidden',
@@ -37,13 +35,17 @@ const HomepageHeader = () => {
       }}
     >
     {/* <div className={clsx('hero hero--primary', styles.heroBanner)}> */}
-        <div ref={ref} style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-        }} />
+        <div 
+          ref={ref} 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'transparent',
+          }} 
+        />
         <div className="container" 
           style={{
             padding: '4rem 0',

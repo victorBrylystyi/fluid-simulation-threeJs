@@ -38,7 +38,6 @@ export class DisplayMaterialPass {
 
     constructor(){
         this.scene = new Scene();
-        this.scene.background = new Color('red');
 
         const geometry = getBasicGeometry();
 

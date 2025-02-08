@@ -1,5 +1,4 @@
-import { OrthographicCamera, Vector2, Vector2Tuple } from "three";
-import Stats from 'three/examples/jsm/libs/stats.module.js'
+import { Color, OrthographicCamera, Vector2, Vector2Tuple } from "three";
 import { Demo } from "../Demo/Demo";
 import { DisplayMaterialPass } from "./DisplayMaterialPass";
 import {Effect} from "@evenstar/fluid";
@@ -7,11 +6,10 @@ import {Effect} from "@evenstar/fluid";
 export class BaseDemo extends Demo {
 
     camera = new OrthographicCamera( -1, 1, 1, -1, 0, 1 );
-    stats = new Stats();
     displayPass!: DisplayMaterialPass;
 
-    constructor(rootElement: HTMLDivElement) {
-        super(rootElement);
+    constructor(rootElement: HTMLDivElement, mountStats: boolean) {
+        super(rootElement, mountStats);
         this.rootElement = rootElement;
 
         this.config.EVENT_PERMISSION = true;
@@ -33,11 +31,6 @@ export class BaseDemo extends Demo {
         this.renderer.setSize(this.rootElement.clientWidth, this.rootElement.clientHeight, true);
 
         this.displayPass = new DisplayMaterialPass();
-
-        this.stats.dom.style.position = 'absolute';
-        this.stats.dom.style.userSelect = 'none';
-        this.rootElement.appendChild(this.stats.dom);
-
         this.addPostProcessingPasses(this.displayPass.scene, this.camera);
 
     }

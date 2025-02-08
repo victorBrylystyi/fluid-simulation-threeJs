@@ -1,6 +1,5 @@
 import { Layers, Mesh, PerspectiveCamera, PMREMGenerator, Scene, ShaderMaterial, SphereGeometry, Texture, Uniform, Vector2Tuple } from "three";
 import { OrbitControls, RGBELoader } from 'three-stdlib';
-import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { Demo } from "../Demo/Demo";
 import {Effect} from "@evenstar/fluid";
 
@@ -16,13 +15,12 @@ export class SphereDemo extends Demo {
 
     effectMesh = new Mesh();
     sphereMesh = new Mesh();
-    stats = new Stats();
     cameraControls!: OrbitControls;
 
     envTexture!: Texture;
 
-    constructor(rootElement: HTMLDivElement) {
-        super(rootElement);
+    constructor(rootElement: HTMLDivElement, mountStats: boolean) {
+        super(rootElement, mountStats);
         this.rootElement = rootElement;
         this.effect = new Effect(this.renderer, this.config);
         this.effect.setAspect(2);
@@ -56,10 +54,6 @@ export class SphereDemo extends Demo {
 
         this.camera = new PerspectiveCamera( 70, aspect, 0.01, 10 );
         this.camera.position.set(0, 0, 0.6);
-
-        this.stats.dom.style.position = 'absolute';
-        this.stats.dom.style.userSelect = 'none';
-        this.rootElement.appendChild(this.stats.dom);
 
         this.cameraControls = new OrbitControls(this.camera, this.canvas);
         this.cameraControls.enableDamping = true;
